@@ -254,15 +254,29 @@ class _MobileScannerState extends State<MobileScanner>
               constraints,
             );
 
-            final Widget scannerWidget = ClipRect(
-              child: SizedBox.fromSize(
-                size: constraints.biggest,
-                child: FittedBox(
-                  fit: widget.fit,
-                  child: CameraPreview(controller),
-                ),
-              ),
-            );
+            // On web (CanvasKit renderer), HtmlElementView platform views are
+            // rendered as DOM overlays outside the Flutter canvas. ClipRect
+            // does NOT clip these overlays — it either has no effect or
+            // suppresses the view entirely, making the camera invisible.
+            // Skip ClipRect on web; SizedBox + FittedBox provide correct sizing.
+            final Widget scannerWidget =
+                kIsWeb
+                    ? SizedBox.fromSize(
+                      size: constraints.biggest,
+                      child: FittedBox(
+                        fit: widget.fit,
+                        child: CameraPreview(controller),
+                      ),
+                    )
+                    : ClipRect(
+                      child: SizedBox.fromSize(
+                        size: constraints.biggest,
+                        child: FittedBox(
+                          fit: widget.fit,
+                          child: CameraPreview(controller),
+                        ),
+                      ),
+                    );
 
             final Widget tapToFocusScannerWidget = Builder(
               builder: (context) {
