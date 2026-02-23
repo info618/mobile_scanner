@@ -20,12 +20,27 @@ class CameraPreview extends StatelessWidget {
     return ValueListenableBuilder<MobileScannerState>(
       valueListenable: controller,
       builder: (BuildContext context, MobileScannerState value, Widget? child) {
+        final cameraView = controller.buildCameraView();
+
+        // On web the camera view is an HtmlElementView whose underlying
+        // <video> element already has CSS objectFit:'cover', width/height
+        // 100%.  Sizing to native video dimensions (e.g. 1920x1080) forces
+        // FittedBox to apply a CSS transform that does not reliably
+        // propagate to the CanvasKit platform-view overlay on iOS Safari.
+        // SizedBox.expand() fills the parent exactly so FittedBox becomes
+        // a no-op (1:1 scale = identity transform).
+        if (kIsWeb) {
+          return SizedBox.expand(child: cameraView);
+        }
+
+        // On native platforms the camera texture is rendered by Flutter's
+        // compositor, so FittedBox scaling works correctly.
         return SizedBox.fromSize(
           size:
               value.deviceOrientation.isLandscape
                   ? value.size.flipped
                   : value.size,
-          child: _wrapInRotatedBox(child: controller.buildCameraView()),
+          child: _wrapInRotatedBox(child: cameraView),
         );
       },
     );
