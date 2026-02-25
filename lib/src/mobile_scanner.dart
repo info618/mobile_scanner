@@ -258,15 +258,14 @@ class _MobileScannerState extends State<MobileScanner>
             // rendered as DOM overlays outside the Flutter canvas. ClipRect
             // does NOT clip these overlays — it either has no effect or
             // suppresses the view entirely, making the camera invisible.
-            // Skip ClipRect on web; SizedBox + FittedBox provide correct sizing.
+            // Skip ClipRect and FittedBox on web: CameraPreview already returns
+            // SizedBox.expand on web which fills the parent via CSS. FittedBox
+            // passes unconstrained constraints to its child, which causes
+            // SizedBox.expand to throw "BoxConstraints forces an infinite size".
             final Widget scannerWidget =
                 kIsWeb
-                    ? SizedBox.fromSize(
-                      size: constraints.biggest,
-                      child: FittedBox(
-                        fit: widget.fit,
-                        child: CameraPreview(controller),
-                      ),
+                    ? SizedBox.expand(
+                      child: CameraPreview(controller),
                     )
                     : ClipRect(
                       child: SizedBox.fromSize(
