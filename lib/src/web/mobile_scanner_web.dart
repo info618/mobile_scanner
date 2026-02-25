@@ -97,14 +97,13 @@ class MobileScannerWeb extends MobileScannerPlatform {
     //
     // iOS Safari requires `playsinline` to play video inline (not fullscreen).
     // Without it, the camera preview is black until the user taps the screen.
-    // `autoplay` is also needed so the browser starts playing the stream
-    // without waiting for a user gesture after srcObject is assigned.
-    // `muted` satisfies the autoplay policy on browsers that block unmuted
-    // autoplay (the camera stream has no audio track, so this is a no-op).
+    // Do NOT set `autoplay` here — ZXing calls video.play() after attaching
+    // the stream; adding `autoplay` causes a "video already playing" error
+    // on iOS Safari when ZXing's play() fires on a video that auto-started.
+    // `muted` satisfies the autoplay policy; the camera stream has no audio.
     videoElement
       ..controls = false
       ..setAttribute('playsinline', '')
-      ..setAttribute('autoplay', '')
       ..muted = true
       ..onplay =
           (JSAny _) {
