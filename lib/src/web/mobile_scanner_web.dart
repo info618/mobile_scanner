@@ -94,8 +94,18 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
     // Do not show the media controls, as this is a preview element.
     // Also prevent play/pause events from changing the media controls.
+    //
+    // iOS Safari requires `playsinline` to play video inline (not fullscreen).
+    // Without it, the camera preview is black until the user taps the screen.
+    // `autoplay` is also needed so the browser starts playing the stream
+    // without waiting for a user gesture after srcObject is assigned.
+    // `muted` satisfies the autoplay policy on browsers that block unmuted
+    // autoplay (the camera stream has no audio track, so this is a no-op).
     videoElement
       ..controls = false
+      ..setAttribute('playsinline', '')
+      ..setAttribute('autoplay', '')
+      ..muted = true
       ..onplay =
           (JSAny _) {
             videoElement.controls = false;
@@ -107,11 +117,17 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
     // Attach the video element to its parent container
     // and setup the PlatformView factory for this `textureId`.
+    //
+    // `transform: translateZ(0)` forces the div into its own GPU compositing
+    // layer on iOS Safari.  Without it the CanvasKit platform-view host may
+    // not be promoted until the first user interaction, which makes the
+    // camera feed invisible (dark screen) until the user taps.
     _divElement =
         HTMLDivElement()
           ..style.objectFit = 'cover'
           ..style.height = '100%'
           ..style.width = '100%'
+          ..style.transform = 'translateZ(0)'
           ..append(videoElement);
 
     ui_web.platformViewRegistry.registerViewFactory(
