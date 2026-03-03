@@ -58,6 +58,9 @@ class MobileScannerWeb extends MobileScannerPlatform {
   /// The texture ID for the camera view.
   int _textureId = 1;
 
+  /// Whether the platform view factory has been registered.
+  bool _viewFactoryRegistered = false;
+
   /// The video element for the camera view.
   late HTMLVideoElement _videoElement;
 
@@ -129,10 +132,13 @@ class MobileScannerWeb extends MobileScannerPlatform {
           ..style.transform = 'translateZ(0)'
           ..append(videoElement);
 
-    ui_web.platformViewRegistry.registerViewFactory(
-      _getViewType(textureId),
-      (_) => _divElement,
-    );
+    if (!_viewFactoryRegistered) {
+      _viewFactoryRegistered = true;
+      ui_web.platformViewRegistry.registerViewFactory(
+        _getViewType(_textureId),
+        (_) => _divElement,
+      );
+    }
 
     return videoElement;
   }
@@ -355,8 +361,6 @@ class MobileScannerWeb extends MobileScannerPlatform {
         _handleMediaTrackSettingsChange,
       );
 
-      _textureId += 1; // Request a new texture.
-
       _videoElement = _createVideoElement(_textureId);
 
       _maybeFlipVideoPreview(_videoElement, videoStream);
@@ -432,12 +436,22 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
   @override
   Future<void> stop() async {
-    // Ensure the barcode scanner is stopped, by cancelling the subscription.
     await _barcodesSubscription?.cancel();
     _barcodesSubscription = null;
-
     await _barcodeReader?.stop();
     _barcodeReader = null;
+
+    // Stop all media tracks (releases the camera hardware)
+    final tracks = _videoElement.srcObject?.getTracks().toDart;
+    if (tracks != null) {
+      for (final track in tracks) {
+        track.stop();
+      }
+    }
+    _videoElement.srcObject = null;
+
+    // Remove orphaned div from DOM
+    _divElement.remove();
   }
 
   @override
