@@ -100,13 +100,15 @@ class MobileScannerWeb extends MobileScannerPlatform {
     //
     // iOS Safari requires `playsinline` to play video inline (not fullscreen).
     // Without it, the camera preview is black until the user taps the screen.
-    // Do NOT set `autoplay` here — ZXing calls video.play() after attaching
-    // the stream; adding `autoplay` causes a "video already playing" error
-    // on iOS Safari when ZXing's play() fires on a video that auto-started.
+    // `autoplay` is set so iOS Safari starts playback when the element enters
+    // the DOM via Flutter's HtmlElementView. ZXing also calls play() after
+    // attaching the stream — the "already playing" error is harmless (caught
+    // by the browser as a rejected Promise, does not throw in Dart).
     // `muted` satisfies the autoplay policy; the camera stream has no audio.
     videoElement
       ..controls = false
       ..setAttribute('playsinline', '')
+      ..setAttribute('autoplay', '')
       ..muted = true
       ..onplay =
           (JSAny _) {
