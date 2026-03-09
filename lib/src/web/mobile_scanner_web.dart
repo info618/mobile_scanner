@@ -438,7 +438,14 @@ class MobileScannerWeb extends MobileScannerPlatform {
   Future<void> stop() async {
     await _barcodesSubscription?.cancel();
     _barcodesSubscription = null;
-    await _barcodeReader?.stop();
+
+    // Guard ZXing cleanup — JS interop can throw if reader is in bad state.
+    // Must not prevent MediaStream track cleanup below.
+    try {
+      await _barcodeReader?.stop();
+    } catch (_) {
+      // ZXing cleanup failure must not prevent camera release
+    }
     _barcodeReader = null;
 
     // Stop all media tracks (releases the camera hardware)
@@ -450,8 +457,9 @@ class MobileScannerWeb extends MobileScannerPlatform {
     }
     _videoElement.srcObject = null;
 
-    // Remove orphaned div from DOM
-    _divElement.remove();
+    // Do NOT remove _divElement here — Flutter's platform view system
+    // still references it via the registered factory. Removing it causes
+    // black screen on lifecycle resume. DOM cleanup happens in dispose().
   }
 
   @override
@@ -474,5 +482,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
     // The `_barcodesController` and `_settingsController`
     // are not closed, as these have the same lifetime as the plugin.
     await stop();
+    // Safe to remove DOM element now — controller won't be reused
+    _divElement.remove();
   }
 }
