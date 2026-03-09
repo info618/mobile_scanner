@@ -439,6 +439,10 @@ class MobileScannerWeb extends MobileScannerPlatform {
     await _barcodesSubscription?.cancel();
     _barcodesSubscription = null;
 
+    // Capture the video stream before stopping the reader,
+    // so we can release MediaStream tracks even if ZXing cleanup fails.
+    final videoStream = _barcodeReader?.videoStream;
+
     // Guard ZXing cleanup — JS interop can throw if reader is in bad state.
     // Must not prevent MediaStream track cleanup below.
     try {
@@ -449,7 +453,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
     _barcodeReader = null;
 
     // Stop all media tracks (releases the camera hardware)
-    final tracks = _videoElement.srcObject?.getTracks().toDart;
+    final tracks = videoStream?.getTracks().toDart;
     if (tracks != null) {
       for (final track in tracks) {
         track.stop();
